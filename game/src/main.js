@@ -187,9 +187,9 @@ function policeCruiser(x, y, angle, extra = {}) {
 function stageCover() {
   reseed(101);
   resetEntities();
-  S.timeOfDay = 22.4;
-  setRain(0.92);
-  S.wet = 0.92;
+  S.timeOfDay = 13.2;
+  setRain(0);
+  S.wet = 0;
   S.heat = 85;                      // 4 stars
   S.lastCrimeTick = 0;
   S.money = 4200;
