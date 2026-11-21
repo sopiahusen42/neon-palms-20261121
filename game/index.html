@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NEON PALMS</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html, body { margin: 0; padding: 0; background: #05070d; height: 100%; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; }
+  #game { background: #05070d; image-rendering: auto; box-shadow: 0 0 80px #000; }
+  #probe-out { display: none; position: fixed; top: 8px; left: 8px; color: #9fe8a8;
+    background: rgba(0,0,0,.8); font: 12px monospace; padding: 8px; max-width: 90vw;
+    white-space: pre-wrap; z-index: 10; }
+  /* shot-info must never appear in a captured frame */
+  #shot-info { position: fixed; left: -99999px; opacity: 0; }
+</style>
+</head>
+<body>
+<canvas id="game" width="1280" height="720"></canvas>
+<pre id="probe-out"></pre>
+<pre id="shot-info"></pre>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
