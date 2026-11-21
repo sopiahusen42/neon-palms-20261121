@@ -164,27 +164,37 @@ export function drawCops(ctx) {
     ctx.save();
     ctx.translate(c.x, c.y);
     ctx.fillStyle = "rgba(15,17,24,0.3)";
-    ctx.beginPath(); ctx.ellipse(2, 3, 8, 5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(3, 4, 13, 8, 0, 0, Math.PI * 2); ctx.fill();
     ctx.rotate(c.angle);
-    const step = Math.sin(c.phase) * 2.6;
+    const step = Math.sin(c.phase) * 3.2;
+    // legs
+    ctx.fillStyle = "#161d2c";
+    ctx.fillRect(-6 + step * 0.4, -8, 10, 5);
+    ctx.fillRect(-6 - step * 0.4, 3, 10, 5);
+    // dark uniform body
     ctx.fillStyle = "#1c2436";
-    ctx.fillRect(-4 + step * 0.4, -6, 7, 4);
-    ctx.fillRect(-4 - step * 0.4, 2, 7, 4);
-    ctx.fillStyle = "#2c4a7c";
-    ctx.beginPath(); ctx.arc(0, 0, 7.6, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, 0, 11, 0, Math.PI * 2); ctx.fill();
+    // lighter tactical vest over the torso
+    ctx.fillStyle = "#5f7fa8";
+    ctx.beginPath(); ctx.arc(-0.5, 0, 8.2, 0, Math.PI * 2); ctx.fill();
+    // hi-vis band across the shoulders so the silhouette reads as police
+    ctx.fillStyle = "#d8e04f";
+    ctx.fillRect(-6.5, -8.5, 4.5, 17);
     // badge
     ctx.fillStyle = "#e8c33f";
-    ctx.fillRect(2, -4, 2.4, 2.4);
-    // drawn weapon
+    ctx.fillRect(3, -5, 3, 3);
+    // arm + drawn weapon: short dark line pointing at the player
     ctx.strokeStyle = "#c89468";
-    ctx.lineWidth = 3.2;
-    ctx.beginPath(); ctx.moveTo(2, -4); ctx.lineTo(12, -1); ctx.stroke();
-    ctx.fillStyle = "#181a1f";
-    ctx.fillRect(10, -2.2, 10, 3.8);
+    ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(3, -5); ctx.lineTo(14, -1.5); ctx.stroke();
+    ctx.strokeStyle = "#14161c";
+    ctx.lineWidth = 4.4;
+    ctx.beginPath(); ctx.moveTo(12, -1.5); ctx.lineTo(25, -0.5); ctx.stroke();
+    // head + cap
     ctx.fillStyle = "#c89468";
-    ctx.beginPath(); ctx.arc(1, 0, 4.4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(1.5, 0, 5.4, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = "#1c2436";
-    ctx.beginPath(); ctx.arc(0.2, 0, 4.4, 1.1, Math.PI * 2 - 1.1); ctx.fill();
+    ctx.beginPath(); ctx.arc(0.4, 0, 5.4, 1.05, Math.PI * 2 - 1.05); ctx.fill();
     ctx.restore();
   }
 }

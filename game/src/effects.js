@@ -39,10 +39,12 @@ export function addFlash(x, y, angle, size = 13, life = 0.06) {
   flashes.push({ x, y, angle, size, life, max: life });
 }
 
-// capture-only variant: long-lived so a frozen frame still shows the shot
+// capture-only variant: long-lived so a frozen frame still shows the shot.
+// Bigger and brighter than combat flashes, with sparks and a thin tracer line
+// so the exchange of fire reads in a still image.
 export function addStagedFlash(x, y, angle) {
-  flashes.push({ x, y, angle, size: 30, life: 0.9, max: 0.9 });
-  addSparks(x, y, 7, angle);
+  flashes.push({ x, y, angle, size: 36, life: 0.9, max: 0.9, staged: true });
+  addSparks(x, y, 10, angle);
 }
 
 export function addExplosion(x, y, staged = false) {
@@ -131,7 +133,11 @@ export function drawEffects(ctx) {
       ctx.stroke();
     }
   }
-  // muzzle flashes: 4-point star + glow
+}
+
+// Muzzle flashes are drawn as their own pass, BEFORE the actors, so a big
+// staged flash lights the ground around an officer without painting over them.
+export function drawFlashes(ctx) {
   for (const f of flashes) {
     const t = clamp((f.life / f.max) * 1.6, 0, 1);
     ctx.save();
@@ -155,6 +161,18 @@ export function drawEffects(ctx) {
     ctx.lineTo(f.size * 0.22, -f.size * 0.20);
     ctx.closePath();
     ctx.fill();
+    // hot white core for extra presence in a frozen frame
+    ctx.fillStyle = `rgba(255,255,240,${0.9 * t})`;
+    ctx.beginPath(); ctx.arc(f.size * 0.18, 0, f.size * 0.22, 0, TAU); ctx.fill();
+    if (f.staged) {
+      // thin tracer streaking out of the muzzle
+      ctx.strokeStyle = `rgba(255,238,170,${0.85 * t})`;
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(f.size * 0.4, 0);
+      ctx.lineTo(f.size * 2.9, 0);
+      ctx.stroke();
+    }
     ctx.restore();
   }
 }

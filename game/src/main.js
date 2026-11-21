@@ -6,7 +6,7 @@ import { S, stars, addHeat, say } from "./state.js";
 import { reseed, rand, clamp, TAU } from "./math.js";
 import { W, H, AVENUES, STREETS, laneCoord } from "./world.js";
 import { generateCity } from "./citygen.js";
-import { applyCamera, updateCamera, setZoom, addShake } from "./camera.js";
+import { applyCamera, updateCamera, setZoom } from "./camera.js";
 import { initInput, keys, hit, endTick } from "./input.js";
 import { makePlayer, updatePlayer, drawPlayer } from "./player.js";
 import { populateTraffic, updateTraffic } from "./traffic.js";
@@ -16,7 +16,7 @@ import { makeCar, drawCar, spawnTrafficCar } from "./vehicles.js";
 import { driveCar, carCollisions } from "./driving.js";
 import { updateCombat } from "./combat.js";
 import { fireWeapon } from "./weapons.js";
-import { updateEffects, drawEffects, drawSkids, drawScorches, addSmoke, addSkid, addStagedFlash, addExplosion, clearEffects } from "./effects.js";
+import { updateEffects, drawEffects, drawFlashes, drawSkids, drawScorches, addSmoke, addSkid, addStagedFlash, addExplosion, clearEffects } from "./effects.js";
 import { nightFactor, drawLighting } from "./lighting.js";
 import { updateWeather, drawRain, setRain } from "./weather.js";
 import { drawMinimap } from "./minimap.js";
@@ -86,6 +86,7 @@ function render() {
   drawMissionMarkers(ctx, S.tick);
   drawPickups(ctx);
   drawPeds(ctx);
+  drawFlashes(ctx);
   drawCops(ctx);
   for (const c of S.cars) drawCar(ctx, c, S.tick, night);
   drawPlayer(ctx, S.tick);
@@ -339,20 +340,25 @@ function stageFoot() {
   p.health = 68; p.armor = 35;
   p.weapon = "smg"; p.ammo = { pistol: 60, smg: 96 };
   p.inCar = null;
-  p.x = 1400; p.y = 1490;           // south pavement of the central street
+  p.x = 1400; p.y = 1490;           // on the avenue just south of the central crosswalk
   p.aim = -Math.PI / 2 + 0.15;
 
-  // officers with drawn weapons
-  const copSpots = [[1300, 1420], [1490, 1435], [1360, 1330], [1520, 1360]];
+  // a squad of five officers closing in on the road and pavement around the
+  // crosswalk, spread in an arc north of the player so each reads clearly
+  const copSpots = [[1330, 1425], [1470, 1428], [1310, 1385], [1400, 1330], [1495, 1385]];
   for (const [x, y] of copSpots) spawnCop(x, y);
 
   // five cruisers: two form a roadblock across the street
   const rb1 = makeCar("cruiser", 1230, 1372, Math.PI / 2, { driver: null, parked: true, blocking: true, siren: true, color: "#e8eaee" });
   const rb2 = makeCar("cruiser", 1230, 1428, Math.PI / 2, { driver: null, parked: true, blocking: true, siren: true, color: "#e8eaee" });
   S.cars.push(rb1, rb2);
-  policeCruiser(1660, 1400, Math.PI);
-  policeCruiser(1090, 1490, 0);
-  policeCruiser(1560, 1290, Math.PI / 2);
+  const mobile = [
+    policeCruiser(1660, 1400, Math.PI),
+    policeCruiser(1090, 1490, 0),
+    policeCruiser(1560, 1290, Math.PI / 2),
+  ];
+  // keep the cast fixed: don't let cruisers deploy extra officers mid-ticks
+  for (const c of mobile) c.deployed = true;
 
   spawnCrowd(1400, 1400, 14);
   for (const pd of S.peds) pd.panic = 3;
@@ -368,33 +374,34 @@ function stageFoot() {
   p.health = 68; p.armor = 35;
   S.heat = 65;
   S.bullets.length = 0;
+  S.camera.shake = 0;               // police hits during ticks must not offset the frame
 
-  // re-assert framing after the sim ticks
+  // re-assert the squad: exactly the staged officers, in frame, weapons on the player
+  S.cops.length = Math.min(S.cops.length, copSpots.length);
   S.cops.forEach((c, i) => {
-    const s = copSpots[i % copSpots.length];
+    const s = copSpots[i];
     c.x = s[0]; c.y = s[1];
     c.angle = Math.atan2(p.y - c.y, p.x - c.x);
+    c.fireCd = 1;
   });
-  const mobile = S.cars.filter((c) => c.isPolice && !c.blocking);
   const mSpots = [[1660, 1400, Math.PI], [1090, 1490, 0], [1560, 1290, Math.PI / 2]];
   mobile.forEach((c, i) => {
-    const s = mSpots[i % mSpots.length];
+    const s = mSpots[i];
     c.x = s[0]; c.y = s[1]; c.angle = s[2];
   });
   rb1.x = 1230; rb1.y = 1372; rb2.x = 1230; rb2.y = 1428;
 
-  // capture-only long-lived muzzle flashes: player + every officer
-  const mx = p.x + Math.cos(p.aim) * 18, my = p.y + Math.sin(p.aim) * 18;
+  // capture-only long-lived muzzle flashes at the weapon muzzle: player + every officer
+  const mx = p.x + Math.cos(p.aim) * 26, my = p.y + Math.sin(p.aim) * 26;
   addStagedFlash(mx, my, p.aim);
   for (const c of S.cops) {
     const a = Math.atan2(p.y - c.y, p.x - c.x);
-    addStagedFlash(c.x + Math.cos(a) * 16, c.y + Math.sin(a) * 16, a);
+    addStagedFlash(c.x + Math.cos(a) * 26, c.y + Math.sin(a) * 26, a);
   }
   // tracers in flight both ways
   for (let i = 0; i < 5; i++) {
     const c = S.cops[i % S.cops.length];
     const a = Math.atan2(p.y - c.y, p.x - c.x);
-    const t = 0.25 + i * 0.12;
     S.bullets.push({
       x: c.x + Math.cos(a) * (60 + i * 22), y: c.y + Math.sin(a) * (60 + i * 22),
       vx: Math.cos(a) * 920, vy: Math.sin(a) * 920, life: 0.4, dmg: 14, team: "police",
@@ -404,12 +411,11 @@ function stageFoot() {
       vx: Math.cos(p.aim) * 980, vy: Math.sin(p.aim) * 980, life: 0.4, dmg: 9, team: "player",
     });
   }
-  // a burning wreck near the roadblock
-  addExplosion(1620, 1445, true);
-  const wreck = makeCar("sedan", 1620, 1445, 0.7, { parked: true });
+  // a single burning wreck, parked well clear of the squad so the firefight stays readable
+  addExplosion(1720, 1560, true);
+  const wreck = makeCar("sedan", 1720, 1560, 0.7, { parked: true });
   wreck.wrecked = true; wreck.color = "#3a3d42"; wreck.hp = 0;
   S.cars.push(wreck);
-  addShake(0);
   S.camera.x = p.x; S.camera.y = p.y;
 }
 
